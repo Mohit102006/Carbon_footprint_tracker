@@ -252,14 +252,7 @@ const Hero = () => {
               </Link>
             </div>
 
-            <div className="hero-stats">
-              {[["10k+", "Users"], ["40%", "Avg. reduction"], ["Free", "To start"]].map(([val, label]) => (
-                <div key={label}>
-                  <span className="hero-stat-val">{val}</span>
-                  <span className="hero-stat-label">{label}</span>
-                </div>
-              ))}
-            </div>
+            
           </div>
 
           {/* Right Image */}
