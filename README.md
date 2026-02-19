@@ -141,7 +141,6 @@ EcoTracker helps individuals:
 ## 📌 Future Improvements
 
 * AI-based carbon prediction
-* Mobile responsive PWA
 * Social sharing of eco scores
 * Leaderboard / Gamification
 * Multi-language support
