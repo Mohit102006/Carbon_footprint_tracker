@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { URL } from "../constant";
 import axios from "axios";
+import { FaArrowLeft } from "react-icons/fa";
 
 function App() {
   const [city,      setCity]      = useState("");
@@ -42,7 +43,13 @@ function App() {
     getNews();
   }, []);
 
+   const backtoHome = () => {
+      window.location.href = "/"
+  }
+
   return (
+
+     
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&display=swap');
@@ -298,10 +305,41 @@ function App() {
           .aqi-results       { grid-template-columns: 1fr; }
           .aqi-news-card     { padding: 1.5rem 1.25rem; }
         }
+         
+          .about-badge {
+          display: inline-block;
+          font-size: 0.7rem;
+          font-weight: 700;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: #4ade80;
+          background: #0f2d18;
+          border: 1px solid #1e3d25;
+          padding: 0.3rem 0.85rem;
+          border-radius: 999px;
+          margin-bottom: 1.5rem;
+        }
+
+        .mb{
+            cursor:pointer;
+            display:flex;
+            align-items:center;
+            width:170px;
+            justify-content:space-between;
+           
+            height:40px;
+          }
+            .mb:hover{
+              transform: translateY(-1px);
+          box-shadow: 0 20px 50px rgba(34, 197, 94, 0.15);
+          border-color: #22c55e;
+            }
       `}</style>
 
       <div className="aqi-page">
-
+        <button className="about-badge mb" onClick={backtoHome}>
+                    <FaArrowLeft/> Back to home
+         </button>
         {/* Header */}
         <div className="aqi-header">
           <img src="/air-quality-index-icon-aqi-icon-vector-removebg-preview.png" alt="AQI Icon" />

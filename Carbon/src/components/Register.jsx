@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { URL } from '../constant';
+import { FaArrowLeft } from "react-icons/fa";
 
 const Register = () => {
   const [name, setName] = useState("");
@@ -53,6 +54,11 @@ const Register = () => {
       else toast.error(data.message);
     } catch (error) { toast.error(error); }
   };
+
+   const backtoHome = () => {
+      window.location.href = "/"
+  }
+
 
   return (
     <>
@@ -279,9 +285,45 @@ const Register = () => {
           .reg-page { padding: 1.5rem; }
           .reg-card { padding: 2rem 1.5rem; border-radius: 1.25rem; }
         }
+
+        
+            .about-badge {
+          display: inline-block;
+          font-size: 0.7rem;
+          font-weight: 700;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: #4ade80;
+          background: #0f2d18;
+          border: 1px solid #1e3d25;
+          padding: 0.3rem 0.85rem;
+          border-radius: 999px;
+          margin-bottom: 1.5rem;
+        }
+
+        .mb{
+            cursor:pointer;
+            display:flex;
+            align-items:center;
+            width:170px;
+            justify-content:space-between;
+           position:absolute;
+           top:30px;
+           left:10px;
+            height:40px;
+          }
+            .mb:hover{
+              transform: translateY(-1px);
+          box-shadow: 0 20px 50px rgba(34, 197, 94, 0.15);
+          border-color: #22c55e;
+            }
+
       `}</style>
 
       <div className="reg-page">
+        <button className="about-badge mb" onClick={backtoHome}>
+                    <FaArrowLeft/> Back to home
+         </button>
         <div className="reg-inner">
 
           {/* Illustration */}

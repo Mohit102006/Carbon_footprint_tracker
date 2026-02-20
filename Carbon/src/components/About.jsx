@@ -1,5 +1,5 @@
 import React from 'react'
-
+import { FaArrowLeft } from "react-icons/fa";
 const cards = [
   {
     icon: "🌍",
@@ -29,7 +29,15 @@ const whyItems = [
 ]
 
 const About = () => {
+
+  const backtoHome = () => {
+      window.location.href = "/"
+  }
+
+
   return (
+
+    
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&display=swap');
@@ -240,10 +248,25 @@ const About = () => {
             grid-template-columns: repeat(2, 1fr);
           }
         }
+          .mb{
+            cursor:pointer;
+            display:flex;
+            align-items:center;
+            width:170px;
+            justify-content:space-between;
+            height:40px;
+          }
+            .mb:hover{
+              transform: translateY(-1px);
+          box-shadow: 0 20px 50px rgba(34, 197, 94, 0.15);
+          border-color: #22c55e;
+            }
       `}</style>
 
       <div className="about-page">
-
+        <button className="about-badge mb" onClick={backtoHome}>
+            <FaArrowLeft/> Back to home
+        </button>
         {/* Header */}
         <div className="about-hero">
           <span className="about-badge">🌱 Who we are</span>
