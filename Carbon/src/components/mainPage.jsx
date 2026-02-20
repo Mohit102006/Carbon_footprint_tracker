@@ -1,26 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { URL } from '../constant';
 
-const MOCK_RECOMMENDATIONS = [
-  { title: "Use bicycle or walk for short distances", iconKey: "bike" },
-  { title: "Switch to solar or renewable energy", iconKey: "solar" },
-  { title: "Eat more plant-based and local food", iconKey: "leaf" },
-  { title: "Turn off and unplug idle electronics", iconKey: "plug" },
-  { title: "Use public transport or carpool", iconKey: "bus" },
-  { title: "Replace bulbs with energy-efficient LEDs", iconKey: "bulb" },
-  { title: "Save water by fixing leaks and shorter showers", iconKey: "water" },
-  { title: "Reduce, reuse, and recycle waste properly", iconKey: "recycle" },
-  { title: "Avoid single-use plastic products", iconKey: "plastic" },
-  { title: "Plant trees and support green initiatives", iconKey: "tree" },
-  { title: "Use energy-efficient appliances", iconKey: "battery" },
-  { title: "Work from home when possible to reduce travel", iconKey: "home" },
-];
-
 const IconMap = {
   bike:    { emoji: "🚲" }, solar:   { emoji: "☀️" }, leaf:    { emoji: "🍃" },
   plug:    { emoji: "🔌" }, bus:     { emoji: "🚌" }, bulb:    { emoji: "💡" },
   water:   { emoji: "💧" }, recycle: { emoji: "♻️" }, plastic: { emoji: "🚯" },
   tree:    { emoji: "🌳" }, battery: { emoji: "🔋" }, home:    { emoji: "🏠" },
+};
+
+// Maps your DB category names → display config
+const CATEGORY_META = {
+  Transport:   { color: "#ef4444", emoji: "🚗" },
+  Electricity: { color: "#eab308", emoji: "⚡" },
+  Food:        { color: "#84cc16", emoji: "🥩" },
+  Water:       { color: "#06b6d4", emoji: "💧" },
+  Waste:       { color: "#8b5cf6", emoji: "♻️" },
+  Shopping:    { color: "#f97316", emoji: "🛍️" },
 };
 
 const RecommendationCard = ({ title, iconKey }) => {
@@ -33,17 +28,37 @@ const RecommendationCard = ({ title, iconKey }) => {
   );
 };
 
-const MainPage = () => {
-  const [total, setTotal] = useState("—");
-  const [name,  setName]  = useState("");
-  const [avg,   setAvg]   = useState(0);
+const CategoryBar = ({ label, value, maxValue, color, emoji }) => {
+  const pct = maxValue > 0 ? Math.min((value / maxValue) * 100, 100) : 0;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+      <span style={{ fontSize: '1rem', width: '1.5rem', textAlign: 'center' }}>{emoji}</span>
+      <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#4b7a5a', width: '76px', textTransform: 'uppercase', letterSpacing: '0.05em', flexShrink: 0 }}>{label}</span>
+      <div style={{ flex: 1, background: '#0a1a0f', borderRadius: '4px', height: '7px', overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: '4px', transition: 'width 1.2s ease' }} />
+      </div>
+      <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#f0fdf4', fontFamily: 'monospace', width: '64px', textAlign: 'right', flexShrink: 0 }}>
+        {value.toFixed(1)} kg
+      </span>
+    </div>
+  );
+};
 
-  const target      = 5.5;
-  const percentage  = Math.min(((avg / target) * 100), 100).toFixed(1);
+const MainPage = () => {
+  const [total, setTotal]             = useState("—");
+  const [name,  setName]              = useState("");
+  const [avg,   setAvg]               = useState(0);
+  const [categories, setCategories]   = useState([]);   // [{ _id: "Transport", total: 120.5 }]
+  const [recommendations, setRecommendations] = useState([]);
+  const [recLoading, setRecLoading]   = useState(true);
+
+  const target       = 5.5;
+  const percentage   = Math.min(((avg / target) * 100), 100).toFixed(1);
   const isUnderLimit = parseFloat(avg) <= target;
   const progressColor = isUnderLimit ? "#22c55e" : "#ef4444";
-  const circumference = 2 * Math.PI * 26; // r=26
+  const circumference = 2 * Math.PI * 26;
 
+  // ── Fetch total + daily avg ──────────────────────────────────────────────
   useEffect(() => {
     const getRes = async () => {
       try {
@@ -59,6 +74,43 @@ const MainPage = () => {
     getRes();
   }, []);
 
+  // ── Fetch category-wise breakdown from getCategoryPie ───────────────────
+  useEffect(() => {
+    const getCategories = async () => {
+      try {
+        const res  = await fetch(`${URL}/consumption/category`, { method: "GET", credentials: "include" });
+        const data = await res.json();
+        // data.data = [{ _id: "Transport", total: 120.5 }, { _id: "Food", total: 88.2 }, ...]
+        if (data.success && Array.isArray(data.data)) {
+          setCategories(data.data);
+        }
+      } catch (_) {}
+    };
+    getCategories();
+  }, []);
+
+  // ── Fetch AI suggestions from backend ───────────────────────────────────
+  useEffect(() => {
+    const getSuggestions = async () => {
+      setRecLoading(true);
+      try {
+        const res  = await fetch(`${URL}/consumption/suggestions`, { method: "GET", credentials: "include" });
+        const data = await res.json();
+        // data.suggestions = [{ title: "...", iconKey: "bus" }, ...]
+        if (data.success && Array.isArray(data.suggestions)) {
+          setRecommendations(data.suggestions);
+        }
+      } catch (_) {
+        setRecommendations([]);
+      } finally {
+        setRecLoading(false);
+      }
+    };
+    getSuggestions();
+  }, []);
+
+  const maxCatValue = Math.max(...categories.map(c => c.total), 1);
+
   return (
     <>
       <style>{`
@@ -72,7 +124,6 @@ const MainPage = () => {
           overflow: hidden;
         }
 
-        /* ── Scrollable body ── */
         .mp-scroll {
           flex: 1;
           overflow-y: auto;
@@ -82,7 +133,6 @@ const MainPage = () => {
           gap: 2rem;
         }
 
-        /* ── Welcome banner ── */
         .mp-welcome {
           background: rgba(15,45,24,0.7);
           border: 1px solid #1e3d25;
@@ -123,7 +173,6 @@ const MainPage = () => {
           font-weight: 600;
         }
 
-        /* ── Stats row ── */
         .mp-stats {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
@@ -175,7 +224,6 @@ const MainPage = () => {
           color: #4b7a5a;
         }
 
-        /* Progress circle card */
         .mp-progress-ring { position: relative; width: 64px; height: 64px; }
         .mp-progress-ring svg { width: 64px; height: 64px; transform: rotate(-90deg); }
         .mp-progress-label {
@@ -194,7 +242,6 @@ const MainPage = () => {
           letter-spacing: 0.04em;
         }
 
-        /* ── Two-column lower area ── */
         .mp-lower {
           display: grid;
           grid-template-columns: 1fr 360px;
@@ -203,7 +250,6 @@ const MainPage = () => {
           min-height: 0;
         }
 
-        /* Placeholder left panel */
         .mp-left-panel {
           background: rgba(15,45,24,0.7);
           border: 1px solid #1e3d25;
@@ -249,7 +295,23 @@ const MainPage = () => {
           margin-top: auto;
         }
 
-        /* ── Recommendations panel ── */
+        .mp-cat-section {
+          display: flex;
+          flex-direction: column;
+          gap: 0.6rem;
+          border-top: 1px solid #1e3d25;
+          padding-top: 0.85rem;
+        }
+
+        .mp-cat-title {
+          font-size: 0.68rem;
+          font-weight: 700;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: #4b7a5a;
+          margin: 0 0 0.25rem 0;
+        }
+
         .mp-rec-panel {
           background: rgba(15,45,24,0.7);
           border: 1px solid #1e3d25;
@@ -299,7 +361,16 @@ const MainPage = () => {
           margin: 0;
         }
 
-        /* ── Responsive ── */
+        .mp-shimmer {
+          background: linear-gradient(90deg, #0a1a0f 25%, #1e3d25 50%, #0a1a0f 75%);
+          background-size: 200% 100%;
+          animation: shimmer 1.4s infinite;
+          border-radius: 0.75rem;
+          height: 46px;
+          flex-shrink: 0;
+        }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
         @media (max-width: 1100px) {
           .mp-stats { grid-template-columns: repeat(2, 1fr); }
           .mp-lower  { grid-template-columns: 1fr; }
@@ -324,29 +395,24 @@ const MainPage = () => {
 
           {/* Stats row */}
           <div className="mp-stats">
-
-            {/* Total footprint */}
             <div className="mp-stat-card">
               <span className="mp-stat-label">Total Footprint</span>
               <span className="mp-stat-value">{total} <sub>CO₂</sub></span>
               <span className="mp-stat-unit">kg total</span>
             </div>
 
-            {/* Daily average */}
             <div className="mp-stat-card">
               <span className="mp-stat-label">Daily Average</span>
               <span className="mp-stat-value">{avg}</span>
               <span className="mp-stat-unit">kg / day</span>
             </div>
 
-            {/* Target */}
             <div className="mp-stat-card">
               <span className="mp-stat-label">Target</span>
               <span className="mp-stat-value" style={{ color: '#60a5fa' }}>{target}</span>
               <span className="mp-stat-unit">kg / day</span>
             </div>
 
-            {/* Progress */}
             <div className="mp-stat-card">
               <span className="mp-stat-label">Progress</span>
               <div className="mp-progress-ring">
@@ -372,11 +438,32 @@ const MainPage = () => {
           {/* Lower section */}
           <div className="mp-lower">
 
-            {/* Left: big CO2 panel */}
+            {/* Left: CO2 + category breakdown bars */}
             <div className="mp-left-panel">
               <p className="mp-panel-title">Your Carbon Footprint</p>
               <p className="mp-panel-sub">Cumulative CO₂ emissions logged so far</p>
               <div className="mp-co2-big">{total} <sub>CO₂</sub></div>
+
+              {/* Category bars — driven by getCategoryPie response */}
+              {categories.length > 0 && (
+                <div className="mp-cat-section">
+                  <p className="mp-cat-title">Category Breakdown</p>
+                  {categories.map(cat => {
+                    const meta = CATEGORY_META[cat._id] || { color: "#4ade80", emoji: "📊" };
+                    return (
+                      <CategoryBar
+                        key={cat._id}
+                        label={cat._id}
+                        value={cat.total}
+                        maxValue={maxCatValue}
+                        color={meta.color}
+                        emoji={meta.emoji}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+
               <p className="mp-co2-caption">
                 Daily average of {avg} kg/day vs target of {target} kg/day —{" "}
                 <span style={{ color: isUnderLimit ? "#22c55e" : "#ef4444" }}>
@@ -385,14 +472,21 @@ const MainPage = () => {
               </p>
             </div>
 
-            {/* Right: recommendations */}
+            {/* Right: AI suggestions from backend */}
             <div className="mp-rec-panel">
               <p className="mp-panel-title">💡 Smart Suggestions</p>
               <p className="mp-panel-sub">Personalised tips to reduce your impact</p>
               <div className="mp-rec-scroll">
-                {MOCK_RECOMMENDATIONS.map((rec, i) => (
-                  <RecommendationCard key={i} title={rec.title} iconKey={rec.iconKey} />
-                ))}
+                {recLoading
+                  ? Array.from({ length: 8 }).map((_, i) => <div key={i} className="mp-shimmer" />)
+                  : recommendations.length > 0
+                    ? recommendations.map((rec, i) => (
+                        <RecommendationCard key={i} title={rec.title} iconKey={rec.iconKey} />
+                      ))
+                    : <p style={{ color: '#4b7a5a', fontSize: '0.82rem', textAlign: 'center', marginTop: '1.5rem' }}>
+                        No suggestions yet. Start logging your activities!
+                      </p>
+                }
               </div>
             </div>
 
