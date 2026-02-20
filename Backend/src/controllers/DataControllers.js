@@ -1,6 +1,14 @@
 import { footPrint } from "../models/footprints.model.js";
 import { User } from "../models/user.model.js"
 import mongoose from "mongoose";
+import dotenv from "dotenv"
+import { CohereClient } from "cohere-ai";
+
+dotenv.config()
+// const cohere = new CohereClient({ token: process.env.COHERE_API_KEY });
+
+
+
 const emissionFactors = {
     Transport: {
         Car: 0.192,          // kg CO₂/km (average petrol car in India)
@@ -127,7 +135,7 @@ export const getTotal = async (req, res) => {
 
         const totalFootprint = result.length > 0 ? result[0].totalFootprint : 0;
         const avgDailyFootprint = dailyAvg.length > 0 ? dailyAvg[0].avgDailyFootprint : 0
-        res.json({ total: totalFootprint, dailyAvg: avgDailyFootprint, name: name, email: email, date: createDate, pi:pimg ,  success: true })
+        res.json({ total: totalFootprint, dailyAvg: avgDailyFootprint, name: name, email: email, date: createDate, pi: pimg, success: true })
     } catch (error) {
         res.status(500).json({
             success: false,
@@ -140,7 +148,7 @@ export const getTotal = async (req, res) => {
 
 export const getLast10Days = async (req, res) => {
 
-     try {
+    try {
         const userId = new mongoose.Types.ObjectId(req.user.id);
 
         // Get date 10 days ago
@@ -190,45 +198,45 @@ export const getLast10Days = async (req, res) => {
 }
 
 export const getCategoryPie = async (req, res) => {
-  try {
-    const userId = new mongoose.Types.ObjectId(req.user.id);
+    try {
+        const userId = new mongoose.Types.ObjectId(req.user.id);
 
-    const data = await footPrint.aggregate([
-      {
-        $match: {
-          userId: userId,
-          footprint: { $exists: true, $ne: null },
-        },
-      },
-      {
-        $group: {
-          _id: "$category",
-          total: { $sum: { $toDouble: "$footprint" } },
-        },
-      },
-      {
-        $sort: { total: -1 },
-      },
-    ]);
+        const data = await footPrint.aggregate([
+            {
+                $match: {
+                    userId: userId,
+                    footprint: { $exists: true, $ne: null },
+                },
+            },
+            {
+                $group: {
+                    _id: "$category",
+                    total: { $sum: { $toDouble: "$footprint" } },
+                },
+            },
+            {
+                $sort: { total: -1 },
+            },
+        ]);
 
-    res.json({ success: true, data });
-  } catch (error) {
-    res.status(500).json({ success: false, message: "Server error" });
-  }
+        res.json({ success: true, data });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Server error" });
+    }
 };
 
 export const getMonthlyReport = async (req, res) => {
-   try {
-    const userId = new mongoose.Types.ObjectId(req.user.id);
+    try {
+        const userId = new mongoose.Types.ObjectId(req.user.id);
 
-    const last30Days = new Date();
-    last30Days.setDate(last30Days.getDate() - 30);
+        const last30Days = new Date();
+        last30Days.setDate(last30Days.getDate() - 30);
 
-     const today = new Date();
+        const today = new Date();
         const last10Days = new Date();
         last10Days.setDate(today.getDate() - 9)
-    // DAILY DATA
-     const daily = await footPrint.aggregate([
+        // DAILY DATA
+        const daily = await footPrint.aggregate([
             {
                 $match: {
                     userId: userId,
@@ -262,47 +270,115 @@ export const getMonthlyReport = async (req, res) => {
             });
         }
 
-    // TOTAL
-    const total = await footPrint.aggregate([
-      {
-        $match: {
-          userId,
-          date: { $gte: last30Days },
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: "$footprint" },
-        },
-      },
-    ]);
+        // TOTAL
+        const total = await footPrint.aggregate([
+            {
+                $match: {
+                    userId,
+                    date: { $gte: last30Days },
+                },
+            },
+            {
+                $group: {
+                    _id: null,
+                    total: { $sum: "$footprint" },
+                },
+            },
+        ]);
 
-    // CATEGORY
+        // CATEGORY
 
-    const category = await footPrint.aggregate([
-      {
-        $match: {
-          userId: userId,
-          footprint: { $exists: true, $ne: null },
-        },
-      },
-      {
-        $group: {
-          _id: "$category",
-          total: { $sum: { $toDouble: "$footprint" } },
-        },
-      },
-      {
-        $sort: { total: -1 },
-      },
-    ]);
-    res.json({
-      data1daily:result,
-      data2category:category,
-      total: total[0]?.total || 0,
-    });
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
-  }
+        const category = await footPrint.aggregate([
+            {
+                $match: {
+                    userId: userId,
+                    footprint: { $exists: true, $ne: null },
+                },
+            },
+            {
+                $group: {
+                    _id: "$category",
+                    total: { $sum: { $toDouble: "$footprint" } },
+                },
+            },
+            {
+                $sort: { total: -1 },
+            },
+        ]);
+        res.json({
+            data1daily: result,
+            data2category: category,
+            total: total[0]?.total || 0,
+        });
+    } catch (err) {
+        res.status(500).json({ message: "Server error" });
+    }
 }
+
+
+
+const categoryIconMap = {
+    Transport: "bus",
+    Electricity: "bulb",
+    Food: "leaf",
+    Water: "water",
+    Waste: "recycle",
+    Shopping: "plastic",
+};
+
+// ─── NEW: AI Suggestions endpoint ────────────────────────────────────────────
+export const getSuggestions = async (req, res) => {
+    try {
+        const userId = new mongoose.Types.ObjectId(req.user.id);
+
+        // 1. Fetch category breakdown for this user
+        const categoryData = await footPrint.aggregate([
+            { $match: { userId, footprint: { $exists: true, $ne: null } } },
+            { $group: { _id: "$category", total: { $sum: { $toDouble: "$footprint" } } } },
+            { $sort: { total: -1 } },
+        ]);
+
+        // 2. Fetch total footprint
+        const totalResult = await footPrint.aggregate([
+            { $match: { userId, footprint: { $exists: true, $ne: null } } },
+            { $group: { _id: null, total: { $sum: { $toDouble: "$footprint" } } } },
+        ]);
+
+        const totalFootprint = totalResult[0]?.total || 0;
+
+        // 3. Build category summary string for AI prompt
+        const categorySummary = categoryData
+            .map(c => `${c._id}: ${c.total.toFixed(2)} kg CO₂`)
+            .join(", ");
+
+        // 4. Call Cohere AI
+        const response = await cohere.chat({
+            model: "command-r-plus-08-2024",
+            message: `You are a carbon footprint reduction expert helping an Indian user lower their emissions.
+
+The user's total carbon footprint is ${totalFootprint.toFixed(2)} kg CO₂.
+Category-wise breakdown: ${categorySummary || "No data available yet"}.
+
+Categories used: Transport (Car, Bike, Bus, Train, Plane, ElectricCar), Electricity (Home, Office, Industry, Renewable), Food (Beef, Mutton, Chicken, Vegetarian, Vegan, Dairy, Seafood), Water (Shower, Laundry, Dishwashing, Gardening), Waste (Plastic, Paper, Metal, Organic, E-waste, Glass), Shopping (Clothing, Electronics, Furniture, Groceries, Luxury).
+
+Give exactly 10 personalized, actionable suggestions to reduce their carbon footprint, focused on the highest-emission categories.
+
+Respond ONLY with a valid JSON array of 10 objects. Each object must have:
+- "title": short action (max 8 words)
+- "iconKey": one of these exact values: "bike", "solar", "leaf", "plug", "bus", "bulb", "water", "recycle", "plastic", "tree", "battery", "home"
+
+Return ONLY the JSON array, no markdown, no explanation.`,
+        });
+
+        // 5. Parse Cohere response
+        const rawText = response.text.trim();
+        const clean = rawText.replace(/```json|```/g, "").trim();
+        const suggestions = JSON.parse(clean);
+
+        return res.json({ success: true, suggestions });
+
+    } catch (error) {
+        console.error("Suggestions error:", error.message);
+        return res.status(500).json({ success: false, message: "Could not generate suggestions" });
+    }
+};
