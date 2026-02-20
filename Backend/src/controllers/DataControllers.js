@@ -185,7 +185,6 @@ export const getLast10Days = async (req, res) => {
         res.json({ success: true, data: result });
 
     } catch (error) {
-        console.log(error);
         res.status(500).json({ success: false, message: "Server error" });
     }
 }
@@ -214,7 +213,6 @@ export const getCategoryPie = async (req, res) => {
 
     res.json({ success: true, data });
   } catch (error) {
-    console.log(error);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
@@ -299,7 +297,6 @@ export const getMonthlyReport = async (req, res) => {
         $sort: { total: -1 },
       },
     ]);
-    console.log(total,result,category)
     res.json({
       data1daily:result,
       data2category:category,

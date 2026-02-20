@@ -57,8 +57,6 @@ export const handleotp = async (req, res) => {
         if (user) return res.status(409).json({ message: "user already exist", success: false })
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-         console.log(otp)
-
         await transporter.sendMail({
             from: `"EcoTracker 🌿" <${process.env.EMAIL_USER}>`,
             to: email,
@@ -74,12 +72,10 @@ export const handleotp = async (req, res) => {
             otp,
             otpExpires: Date.now() + 10 * 60 * 1000, // 10 min
         });
-       console.log(newUser)
         await newUser.save();
 
         return res.status(200).json({ message: "OTP sent successfully", success: true });
     } catch (error) {
-        console.log("MAIL ERROR:", error);
         return res.status(500).json({ message: "Failed to send OTP", success: false });
     }
 }
@@ -122,7 +118,6 @@ export const changePassword = async (req , res) => {
         const userId = req.user.id;
         const user = await User.findOne({email})
         const salt = await bcrypt.genSalt(10);
-        console.log(oldPass , user.pass)
         const re = oldPass == user.pass
         if(re == true){
             user.pass = await bcrypt.hash(newPass, salt);
