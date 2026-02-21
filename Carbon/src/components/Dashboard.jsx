@@ -309,7 +309,7 @@ const Dashboard = () => {
 
             <div className="dash-topbar-right">
               <Link to="/Dashboard/profile" className="dash-profile-link">
-                <img src={profileImg} alt="Profile" className="dash-avatar" />
+                <img src={profileImg === "" ? "/profile.png" : profileImg} alt="Profile" className="dash-avatar" />
                 {name && <span className="dash-profile-name">{name}</span>}
               </Link>
             </div>

@@ -44,7 +44,16 @@ const Log = () => {
   };
 
   const handleAmount = (e) => setformData({ ...data, amount: parseFloat(e.target.value) });
-  const handleDate   = (e) => setformData({ ...data, date: e.target.value });
+  const handleDate   = (e) => {
+    let today = Date.now();
+    let inp = new Date(e.target.value).getTime()
+    if(inp > today){
+      toast.error("Enter a valid date")
+      setformData({...data ,  date:" "})
+    }else{
+      setformData({...data , date:e.target.value})
+    }
+  };
 
   const handleInfo = async (e) => {
     e.preventDefault();

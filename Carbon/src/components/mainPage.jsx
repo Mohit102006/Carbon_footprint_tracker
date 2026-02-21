@@ -45,7 +45,7 @@ const CategoryBar = ({ label, value, maxValue, color, emoji }) => {
 };
 
 const MainPage = () => {
-  const [total, setTotal]             = useState("—");
+  const [total, setTotal]             = useState(0);
   const [name,  setName]              = useState("");
   const [avg,   setAvg]               = useState(0);
   const [categories, setCategories]   = useState([]);   // [{ _id: "Transport", total: 120.5 }]
@@ -224,18 +224,18 @@ const MainPage = () => {
           color: #4b7a5a;
         }
 
-        .mp-progress-ring { position: relative; width: 64px; height: 64px; }
-        .mp-progress-ring svg { width: 64px; height: 64px; transform: rotate(-90deg); }
-        .mp-progress-label {
-          position: absolute;
-          inset: 0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 0.72rem;
-          font-weight: 800;
-        }
-
+        .mp-progress-ring { position: relative; width: 72px; height: 72px; }
+.mp-progress-ring svg { width: 72px; height: 72px; transform: rotate(-90deg); }
+.mp-progress-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  white-space: nowrap;
+  letter-spacing: -0.02em;
+}
         .mp-progress-status {
           font-size: 0.7rem;
           font-weight: 700;
@@ -397,7 +397,7 @@ const MainPage = () => {
           <div className="mp-stats">
             <div className="mp-stat-card">
               <span className="mp-stat-label">Total Footprint</span>
-              <span className="mp-stat-value">{total} <sub>CO₂</sub></span>
+              <span className="mp-stat-value">{total}<sub>CO₂</sub></span>
               <span className="mp-stat-unit">kg total</span>
             </div>
 
@@ -415,20 +415,23 @@ const MainPage = () => {
 
             <div className="mp-stat-card">
               <span className="mp-stat-label">Progress</span>
-              <div className="mp-progress-ring">
-                <svg viewBox="0 0 64 64">
-                  <circle cx="32" cy="32" r="26" stroke="#1e3d25" strokeWidth="6" fill="none" />
-                  <circle
-                    cx="32" cy="32" r="26"
-                    stroke={progressColor}
-                    strokeWidth="6"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeDasharray={`${(percentage / 100) * circumference} ${circumference}`}
-                  />
-                </svg>
-                <div className="mp-progress-label" style={{ color: progressColor }}>{percentage}%</div>
-              </div>
+             <div className="mp-progress-ring">
+  <svg viewBox="0 0 64 64">
+    <circle cx="32" cy="32" r="26" stroke="#1e3d25" strokeWidth="6" fill="none" />
+    <circle cx="32" cy="32" r="26" stroke={progressColor} strokeWidth="6" fill="none"
+      strokeLinecap="round"
+      strokeDasharray={`${(percentage / 100) * circumference} ${circumference}`} />
+  </svg>
+  <div
+    className="mp-progress-label"
+    style={{
+      color: progressColor,
+      fontSize: `${percentage.toString().length > 4 ? '0.55rem' : '0.65rem'}`,
+    }}
+  >
+    {percentage}%
+  </div>
+</div>
               <span className="mp-progress-status" style={{ color: progressColor }}>
                 {isUnderLimit ? "✓ Below target" : "↑ Above target"}
               </span>
@@ -477,19 +480,35 @@ const MainPage = () => {
               <p className="mp-panel-title">💡 Smart Suggestions</p>
               <p className="mp-panel-sub">Personalised tips to reduce your impact</p>
               <div className="mp-rec-scroll">
-                {recLoading
-                  ? Array.from({ length: 8 }).map((_, i) => <div key={i} className="mp-shimmer" />)
-                  : recommendations.length > 0
-                    ? recommendations.map((rec, i) => (
-                        <RecommendationCard key={i} title={rec.title} iconKey={rec.iconKey} />
-                      ))
-                    : <p style={{ color: '#4b7a5a', fontSize: '0.82rem', textAlign: 'center', marginTop: '1.5rem' }}>
-                        No suggestions yet. Start logging your activities!
-                      </p>
-                }
+
+             {
+   total == 0 ? (
+    <p style={{ color: '#4b7a5a', fontSize: '0.82rem', textAlign: 'center', marginTop: '1.5rem' }}>
+      No suggestions yet. Start logging your activities!
+    </p>
+  ) : avg < target ? (
+    <p style={{ color: '#4b7a5a', fontSize: '0.82rem', textAlign: 'center', marginTop: '1.5rem' }}>
+      Great job! 🎉 Your carbon footprint is lower than the average. Your small daily choices are making a real difference for the planet. Keep it up!
+    </p>
+  ) : recLoading ? (
+    Array.from({ length: 8 }).map((_, i) => (
+      <div key={i} className="mp-shimmer" />
+    ))
+  ) : recommendations.length > 0 ? (
+    recommendations.map((rec, i) => (
+      <RecommendationCard key={i} title={rec.title} iconKey={rec.iconKey} />
+    ))
+  ) : (
+    <p style={{ color: '#4b7a5a', fontSize: '0.82rem', textAlign: 'center', marginTop: '1.5rem' }}>
+      Server problem
+    </p>
+  )
+}
+
+
+                
               </div>
             </div>
-
           </div>
         </div>
       </div>

@@ -514,7 +514,7 @@ const Profile = () => {
 
             {/* Avatar */}
             <div className="prof-avatar-wrap">
-              <img src={pimg} alt="Profile" className="prof-avatar" />
+              <img  src={pimg === "" ? "/profile.png" : pimg} alt="Profile" className="prof-avatar" />
               <button className="prof-avatar-btn" onClick={() => setPop(true)}>✏ Edit</button>
             </div>
 
