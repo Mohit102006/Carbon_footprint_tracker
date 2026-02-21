@@ -5,7 +5,7 @@ import dotenv from "dotenv"
 import { CohereClient } from "cohere-ai";
 
 dotenv.config()
-// const cohere = new CohereClient({ token: process.env.COHERE_API_KEY });
+// const cohere = new CohereClient({ token: process.env.COHERE_API_KEY })
 
 
 
@@ -378,7 +378,7 @@ Return ONLY the JSON array, no markdown, no explanation.`,
         return res.json({ success: true, suggestions });
 
     } catch (error) {
-        console.error("Suggestions error:", error.message);
+        console.error("Suggestions error1:", error.message);
         return res.status(500).json({ success: false, message: "Could not generate suggestions" });
     }
 };
